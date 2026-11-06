@@ -2,29 +2,26 @@
 erDiagram
     users {
         uuid id PK
-        varchar username
+        varchar name
+        varchar username UK
         varchar email UK
         varchar password_hash
         timestamp created_at
     }
-
     groups {
         uuid id PK
         varchar name
         timestamp created_at
     }
-
     group_members {
-        uuid group_id FK
+        uuid group_id PK
         uuid user_id FK
         timestamp joined_at
     }
-
     categories {
         int id PK
         varchar name
     }
-
     expenses {
         uuid id PK
         uuid group_id FK
@@ -33,29 +30,29 @@ erDiagram
         varchar description
         decimal total_amount
         varchar split_method
+        timestamp occurred_on
         timestamp created_at
     }
-
     expense_splits {
         uuid id PK
         uuid expense_id FK
         uuid debtor_id FK
         decimal amount_owed
     }
-
     settlements {
         uuid id PK
         uuid group_id FK
         uuid sender_id FK
         uuid receiver_id FK
         decimal amount
-        varchar status
+        int status
+        timestamp occurred_on
         timestamp created_at
         timestamp updated_at
     }
 
     groups ||--o{ group_members : has
-    users ||--o{ group_members : "is member of"
+    users ||--o{ group_members : is_member_of
     groups ||--o{ expenses : contains
     users ||--o{ expenses : pays
     categories ||--o{ expenses : categorizes
