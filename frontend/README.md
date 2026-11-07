@@ -1,17 +1,16 @@
-# Frontend starter
+# Frontend
 
-This is the project's Next.js/React/TypeScript starter, configured for static
-export to Azure Static Web Apps. Household application functionality and API
-integration are not implemented yet.
+Next.js, React and TypeScript starter. Household screens and API integration are
+not implemented yet.
 
-Use Node.js 24. From this directory:
+Use Node.js 24, as specified in [`.nvmrc`](../.nvmrc). From `frontend/`:
 
 ```sh
 npm ci
 npm run dev
 ```
 
-Run the configured checks and create the static output:
+Open `http://localhost:3000`. Before submitting changes:
 
 ```sh
 npm run lint
@@ -19,15 +18,8 @@ npm run typecheck
 npm run build
 ```
 
-The development server uses `http://localhost:3000`; the production build writes
-`out/`. It is deployed as static files without a Next.js server. There is no
-`next start` command for this export configuration.
+The build exports static files to `out/` for Azure Static Web Apps. Features
+requiring a Next.js server, such as API routes and runtime server rendering,
+are unavailable in this deployment. Vitest is not configured yet.
 
-There is no configured Vitest suite yet. Frontend checks in the PR-only workflow
-remain a TODO. The main deployment workflow validates the frontend and backend
-before deploying either. This frontend does not yet call the API or database.
-There are no smoke tests.
-
-See the [project README](../README.md) for CI/CD, the manual deployment-secret
-setup, infrastructure provisioning, and the distinction between existing starter
-code and planned application behavior.
+See [CI/CD](../README.md#cicd) and [Azure deployment setup](../infra/README.md).

@@ -1,6 +1,6 @@
 # AI-assisted work log
 
-This file records the scope, results, and validation of AI-assisted repository
+This file records the scope and results of AI-assisted repository
 changes. Coding agents append an entry for each task that changes files, following
 [AGENTS.md](AGENTS.md). Entries describe completed work and preserve earlier history.
 
@@ -47,3 +47,13 @@ Copy this template to the end of the log and replace the placeholders:
   script in `infra/sql/`. Updated both READMEs, amended AGENTS.md with strict
   phased compatibility and database/test guidance, and recorded the plan in
   `docs/superpowers/plans/2026-11-07-database-migrations.md`.
+
+### 2026-11-07 — Simplify project documentation
+
+- Scope: Review documentation for relevance, duplication and readability.
+- Changes: Shortened README.md to an overview; consolidated developer commands in
+  backend/README.md and frontend/README.md and Azure administration in the new
+  infra/README.md. Trimmed docs/schema.md to the diagram and key constraints;
+  removed deployment narration, obsolete flags and repeated implementation details.
+  Updated the AI.md introduction and appended this entry. Kept runnable setup,
+  Docker limitations, pending Azure prerequisites and existing agent policies.
