@@ -37,5 +37,6 @@ jobs:
       - name: Test backend
         run: python -m pytest -q
 
-  # TODO(frontend): Add setup-node@v7 (Node 24), npm ci, ESLint, and Vitest
-  # when frontend tests exist. Do not create a passing placeholder test job.
+  frontend:
+    name: Frontend validation
+    uses: ./.github/workflows/frontend-validation.yml

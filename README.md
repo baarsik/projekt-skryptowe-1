@@ -8,7 +8,9 @@ for the proposed functional scope.
 
 - `frontend/` contains the Next.js 16.4.3, React 19.3.0, and TypeScript starter. It
   does not yet implement expenses, accounts, balances, or API requests.
-- The frontend exports static HTML/CSS/JavaScript to `frontend/out/`.
+- The frontend exports static HTML/CSS/JavaScript to `frontend/out/`, including
+  English and Polish home, login, signup, and forgot-password pages with dummy
+  content. `/` redirects to `/pl/` without a Next.js server.
 - [Application CI/CD](.github/workflows/ci-cd.yml) validates both applications and
   prepares their Azure deployments. Frontend deployment requires the user-provided
   GitHub secret described below and this workflow on GitHub.
@@ -21,10 +23,10 @@ for the proposed functional scope.
 - `infra/` defines the frontend host, enabled Python backend host, its narrowly
   scoped GitHub deployment identity, and a separate free-offer SQL database.
   Database users, application tables, migrations, and seeding are not implemented.
-- PRs to `main` run backend Ruff and pytest on Python 3.14. Frontend PR checks
-  remain a TODO because Vitest tests are not configured. The main deployment
-  workflow separately validates both applications using Python 3.14 for the backend.
-  There are no smoke tests or post-deployment application checks.
+- PRs to `main` run backend Ruff/pytest on Python 3.14 and frontend validation on
+  Node.js 24 in parallel. PR and deployment workflows share frontend lint,
+  TypeScript, build, and static artifact checks. Vitest application tests and
+  post-deployment application checks remain planned.
 
 The current Azure frontend host replaces the GitHub Pages suggestion in
 [issue #1](https://github.com/baarsik/projekt-skryptowe-1/issues/1). The planned
@@ -46,13 +48,27 @@ The development server uses `http://localhost:3000`. Before submitting changes:
 npm run lint
 npm run typecheck
 npm run build
+npm run check:export
 ```
 
-The build writes the static deployment files to `frontend/out/`. Static hosting
+The build clears old `frontend/out/` files before writing the static deployment
+artifact, so an earlier export cannot hide a later server build. Static hosting
 runs no Next.js server. Server Actions, runtime server rendering, and API routes
 requiring a server are outside this deployment model. Image optimization is
 disabled so images do not require a Next.js server. Cache Components and Partial
 Prefetching from the starter are disabled for the static configuration.
+
+Localization uses next-intl with explicit `/en/` and `/pl/` prefixes. Every
+localized page sets its request locale before using translations, so rendering
+never needs incoming request headers. Middleware and automatic browser-language detection are disabled
+for static hosting. The root page emits a static redirect to `/pl/`.
+
+`check:export` checks the actual `out/` artifact: all eight localized pages,
+translated headings, language attributes, localized links, referenced JS/CSS,
+the root redirect, and `404.html`. It fails if a server build succeeds without
+producing the static files. Run it after every build; extend its route expectations
+when adding or changing pages. It uses Node's standard library with no additional
+dependencies and does not replace future Vitest application tests.
 
 The frontend currently has no API address setting and does not contact the
 backend or database. Define and document build-time API configuration
@@ -62,12 +78,16 @@ browser build.
 ## Pull request CI
 
 [ci.yml](.github/workflows/ci.yml) runs only for pull requests targeting `main`.
-It installs `backend/requirements.txt` and Ruff, runs `python -m ruff check .`, and
-runs `python -m pytest -q` from `backend/` using Python 3.14.
+Its backend job installs `backend/requirements.txt` and Ruff, runs
+`python -m ruff check .`, and runs `python -m pytest -q` from `backend/` using
+Python 3.14. In parallel, it calls the shared
+[frontend validation workflow](.github/workflows/frontend-validation.yml), which
+uses Node.js 24 and runs `npm ci`, lint, type checking, the production build, and
+`npm run check:export` before saving the validated static artifact. The same
+workflow validates the frontend before deployment on `main`.
 
-Frontend setup, ESLint, and Vitest remain a commented TODO until frontend tests
-exist. No placeholder job reports frontend tests as passed. This workflow does
-not deploy or request Azure credentials.
+This workflow does not deploy or request Azure credentials. Frontend Vitest
+application tests remain planned; static artifact validation runs now.
 
 ## Application CI/CD
 
@@ -100,9 +120,13 @@ The backend deployment is enabled without an opt-in repository variable.
 placeholder: leave `ENABLE_DATABASE_MIGRATIONS` unset. Setting it to `true` fails
 that job until real migrations and seeding replace it.
 
-Required-check branch protection has not been configured. More backend behavioral
-coverage and frontend Vitest tests must be added with application functionality;
-issue #2 is not complete merely because this initial workflow exists.
+The existing `main-protection` ruleset requires a pull request and approval, but
+does not require passing status checks (checked on 2026-11-07). To prevent merging
+failed checks, also require the PR's `Frontend validation / Static frontend checks`
+and `Backend lint and tests` checks in that ruleset. This change does not update
+GitHub settings; workflow files alone cannot enforce repository merge rules.
+More backend behavioral coverage and frontend Vitest tests must be added with
+application functionality; issue #2 is not complete merely because this workflow exists.
 
 ### Backend deployment authentication
 
