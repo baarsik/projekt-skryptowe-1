@@ -1,7 +1,5 @@
-from fastapi import FastAPI
+from __future__ import annotations
 
-app = FastAPI()
+from app.main import app
 
-@app.get("/")
-def read_root():
-    return {"msg": "Hello World"}
+__all__ = ["app"]

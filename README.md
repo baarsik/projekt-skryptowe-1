@@ -12,9 +12,12 @@ for the proposed functional scope.
 - [Application CI/CD](.github/workflows/ci-cd.yml) validates both applications and
   prepares their Azure deployments. Frontend deployment requires the user-provided
   GitHub secret described below and this workflow on GitHub.
-- `backend/` contains a FastAPI starter with a `GET /` endpoint returning
-  `{"msg": "Hello World"}`, with pytest checks for the endpoint and deployment
-  packaging. It has no database integration or household application functionality.
+- `backend/` contains the modular FastAPI application (`backend/app/`) with
+  user authentication (sign up, sign in, password reset with stub email
+  service, password change, logout with token revocation, JWT stored in
+  cookies), global middleware route protection, and SQLAlchemy models matching
+  the database ER diagram. All non-auth endpoints require an authenticated
+  session.
 - `infra/` defines the frontend host, enabled Python backend host, its narrowly
   scoped GitHub deployment identity, and a separate free-offer SQL database.
   Database users, application tables, migrations, and seeding are not implemented.

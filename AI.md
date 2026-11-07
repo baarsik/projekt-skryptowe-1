@@ -31,3 +31,8 @@ Copy this template to the end of the log and replace the placeholders:
 
 - Scope: Backend checks for PRs to main; frontend checks left as TODO.
 - Changes: Switched `ci.yml` to Python 3.14, installed Ruff directly, and updated both READMEs; kept deployment CI on main/manual runs and updated setup instructions.
+
+### 2026-11-07 — Backend user authentication and database models
+
+- Scope: Backend authentication flow, ER diagram database models, cookie-based JWT, and global route protection.
+- Changes: Implemented modular backend in `backend/app/` with auth endpoints (sign-up, sign-in, logout with token revocation, change/reset password), `AuthMiddleware` route protection, and SQLAlchemy models from the ER diagram. Used cookie-stored JWTs, bcrypt hashing, and a stub email service for password resets. Added dependencies (`sqlalchemy`, `pyjwt`, `bcrypt`), automated tests, and updated documentation.

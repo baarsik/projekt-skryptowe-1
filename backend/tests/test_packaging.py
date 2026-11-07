@@ -26,8 +26,11 @@ def source_tree(tmp_path):
     repository = tmp_path / "repository"
     backend = repository / "backend"
     (backend / "tests").mkdir(parents=True)
+    (backend / "app").mkdir(parents=True)
     (backend / ".venv").mkdir()
-    (backend / "main.py").write_text("# Version selected for deployment\n")
+    
+    (backend / "app" / "__init__.py").touch()
+    (backend / "app" / "main.py").write_text("# Version selected for deployment\n")
     (backend / "requirements.txt").write_text("fastapi\n")
     (backend / "tests" / "test_main.py").write_text("# Test code\n")
     (backend / ".env").write_text("LOCAL_ONLY=yes\n")
@@ -40,9 +43,9 @@ def source_tree(tmp_path):
         ).strip()
 
     git("init", "--quiet")
-    git("add", "backend/main.py", "backend/requirements.txt", "backend/tests")
+    git("add", "backend/app", "backend/requirements.txt", "backend/tests")
     revision = git("write-tree")
-    (backend / "main.py").write_text("# Later uncommitted changes\n")
+    (backend / "app" / "main.py").write_text("# Later uncommitted changes\n")
     return repository, revision
 
 
@@ -55,9 +58,11 @@ def test_package_uses_selected_source_and_tested_dependency_versions(source_tree
     create_package(repository, revision, output, requirements)
 
     with ZipFile(output) as package:
-        assert package.read("main.py") == b"# Version selected for deployment\n"
+        assert package.read("app/main.py") == b"# Version selected for deployment\n"
         assert package.read("requirements.txt").decode() == requirements
-        assert set(package.namelist()) == {"main.py", "requirements.txt"}
+        assert "app/__init__.py" in package.namelist()
+        assert "app/main.py" in package.namelist()
+        assert "requirements.txt" in package.namelist()
 
 
 def test_package_works_when_called_from_backend_directory(source_tree, tmp_path, monkeypatch):
@@ -69,7 +74,7 @@ def test_package_works_when_called_from_backend_directory(source_tree, tmp_path,
     create_package(repository, revision, output, "fastapi==0.162.0\n")
 
     with ZipFile(output) as package:
-        assert "main.py" in package.namelist()
+        assert "app/main.py" in package.namelist()
 
 
 def test_invalid_revision_does_not_create_deployment_archive(source_tree, tmp_path):
