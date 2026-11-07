@@ -5,7 +5,8 @@ The proposed application scope is in [issue #11](https://github.com/baarsik/proj
 
 ## Current state
 
-- **Frontend:** Next.js, React and TypeScript starter, exported as static files.
+- **Frontend:** Static English/Polish home and placeholder authentication screens
+  built with Next.js, React and TypeScript.
 - **Backend:** Python 3.14/FastAPI starter with `GET /` returning
   `{"msg": "Hello World"}`.
 - **Database:** SQL Server/Azure SQL schema, Alembic migrations and repeatable
@@ -29,13 +30,17 @@ and CSV import/export remain planned.
 ## CI/CD
 
 [Pull requests](.github/workflows/ci.yml) run backend Ruff and pytest, including
-SQL integration tests against a disposable database. Frontend PR checks and
-Vitest are not configured yet.
+SQL integration tests against a disposable database. Frontend checks cover lint,
+TypeScript, build and static export validation, shared with deployment CI.
+Vitest application tests are not configured yet.
 
 [Main builds](.github/workflows/ci-cd.yml) validate the frontend and backend,
 apply database migrations and reference seeds, then deploy both applications.
 Both deployments require successful migrations and use the validated build
 artifacts. Only `main` can deploy, including manual runs.
+
+To block merges on failed CI, require `Frontend validation / Static frontend checks`
+and `Backend lint and tests` in branch protection.
 
 Configured addresses: [frontend](https://ps1.mmalakhouski.eu) and
 [API](https://api.ps1.mmalakhouski.eu).

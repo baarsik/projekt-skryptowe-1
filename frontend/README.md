@@ -1,7 +1,8 @@
 # Frontend
 
-Next.js, React and TypeScript starter. Household screens and API integration are
-not implemented yet.
+Next.js, React, TypeScript and next-intl. English/Polish home, login, signup and
+forgot-password pages use placeholder content; authentication and API integration
+are not implemented. Routes use `/en/` and `/pl/`; `/` redirects to `/pl/`.
 
 Use Node.js 24, as specified in [`.nvmrc`](../.nvmrc). From `frontend/`:
 
@@ -16,10 +17,15 @@ Open `http://localhost:3000`. Before submitting changes:
 npm run lint
 npm run typecheck
 npm run build
+npm run check:export
 ```
 
-The build exports static files to `out/` for Azure Static Web Apps. Features
-requiring a Next.js server, such as API routes and runtime server rendering,
-are unavailable in this deployment. Vitest is not configured yet.
+The build replaces `out/` with static files for Azure Static Web Apps; it runs no
+Next.js server or middleware. Set the request locale before translation calls in
+new localized pages. Automatic browser-language detection is disabled.
+
+`check:export` checks the exported pages, links, assets, root redirect and 404.
+Update its [route expectations](../.github/scripts/check_frontend_export.mjs)
+when pages change. Vitest application tests are not configured yet.
 
 See [CI/CD](../README.md#cicd) and [Azure deployment setup](../infra/README.md).
