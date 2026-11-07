@@ -29,6 +29,10 @@ def source_tree(tmp_path):
     (backend / ".venv").mkdir()
     (backend / "main.py").write_text("# Version selected for deployment\n")
     (backend / "requirements.txt").write_text("fastapi\n")
+    (backend / "migrations" / "versions").mkdir(parents=True)
+    (backend / "alembic.ini").write_text("[alembic]\nscript_location = migrations\n")
+    (backend / "migrations" / "env.py").write_text("# Migration environment\n")
+    (backend / "migrations" / "versions" / "initial.py").write_text("# Initial revision\n")
     (backend / "tests" / "test_main.py").write_text("# Test code\n")
     (backend / ".env").write_text("LOCAL_ONLY=yes\n")
     (backend / ".venv" / "local.txt").write_text("Local environment\n")
@@ -40,7 +44,8 @@ def source_tree(tmp_path):
         ).strip()
 
     git("init", "--quiet")
-    git("add", "backend/main.py", "backend/requirements.txt", "backend/tests")
+    git("add", "backend/main.py", "backend/requirements.txt", "backend/tests",
+        "backend/alembic.ini", "backend/migrations")
     revision = git("write-tree")
     (backend / "main.py").write_text("# Later uncommitted changes\n")
     return repository, revision
@@ -57,7 +62,10 @@ def test_package_uses_selected_source_and_tested_dependency_versions(source_tree
     with ZipFile(output) as package:
         assert package.read("main.py") == b"# Version selected for deployment\n"
         assert package.read("requirements.txt").decode() == requirements
-        assert set(package.namelist()) == {"main.py", "requirements.txt"}
+        assert {name for name in package.namelist() if not name.endswith("/")} == {
+            "main.py", "requirements.txt", "alembic.ini", "migrations/env.py",
+            "migrations/versions/initial.py",
+        }
 
 
 def test_package_works_when_called_from_backend_directory(source_tree, tmp_path, monkeypatch):

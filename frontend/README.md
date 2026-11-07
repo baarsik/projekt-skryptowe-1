@@ -1,17 +1,17 @@
-# Frontend starter
+# Frontend
 
-This is the project's Next.js/React/TypeScript starter, configured for static
-export to Azure Static Web Apps. Household application functionality and API
-integration are not implemented yet.
+Next.js, React, TypeScript and next-intl. English/Polish home, login, signup and
+forgot-password pages use placeholder content; authentication and API integration
+are not implemented. Routes use `/en/` and `/pl/`; `/` redirects to `/pl/`.
 
-Use Node.js 24. From this directory:
+Use Node.js 24, as specified in [`.nvmrc`](../.nvmrc). From `frontend/`:
 
 ```sh
 npm ci
 npm run dev
 ```
 
-Run the configured checks and create the static output:
+Open `http://localhost:3000`. Before submitting changes:
 
 ```sh
 npm run lint
@@ -20,25 +20,12 @@ npm run build
 npm run check:export
 ```
 
-The development server uses `http://localhost:3000`; the production build writes
-`out/`, clearing any old export first. It is deployed as static files without a
-Next.js server. There is no
-`next start` command for this export configuration.
+The build replaces `out/` with static files for Azure Static Web Apps; it runs no
+Next.js server or middleware. Set the request locale before translation calls in
+new localized pages. Automatic browser-language detection is disabled.
 
-The home, login, signup, and forgot-password pages have dummy English and Polish
-content at `/en/` and `/pl/`. `/` redirects to `/pl/`. Every localized page sets
-its locale before translation calls. There is no runtime middleware or automatic
-language detection in this static hosting model.
+`check:export` checks the exported pages, links, assets, root redirect and 404.
+Update its [route expectations](../.github/scripts/check_frontend_export.mjs)
+when pages change. Vitest application tests are not configured yet.
 
-`check:export` verifies the eight localized HTML pages, translated headings,
-language attributes, localized links, referenced JS/CSS files, the root redirect,
-and the static 404. It checks `out/`, so a successful server build cannot satisfy
-it. Extend `.github/scripts/check_frontend_export.mjs` when routes change.
-
-PR and deployment CI call the same frontend validation workflow, including all
-four commands above. There is no configured Vitest application suite or live
-post-deployment check yet. This frontend does not yet call the API or database.
-
-See the [project README](../README.md) for CI/CD, the manual deployment-secret
-setup, infrastructure provisioning, and the distinction between existing starter
-code and planned application behavior.
+See [CI/CD](../README.md#cicd) and [Azure deployment setup](../infra/README.md).

@@ -1,0 +1,11 @@
+FROM python:3.14-slim
+
+# Native Kerberos library is needed by the SQL driver. Git supports packaging tests.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libgssapi-krb5-2 libltdl7 git \
+    && rm -rf /var/lib/apt/lists/*
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+WORKDIR /workspace/backend
+COPY requirements.txt /tmp/requirements.txt
+RUN python -m pip install --no-cache-dir -r /tmp/requirements.txt ruff

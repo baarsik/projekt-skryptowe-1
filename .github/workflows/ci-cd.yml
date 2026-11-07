@@ -40,8 +40,18 @@ jobs:
         run: |
           python -m venv .venv
           .venv/bin/python -m pip install -r requirements.txt
+      - name: Install SQL driver system libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libgssapi-krb5-2 libltdl7
+      - name: Start disposable SQL Server
+        run: python ../.github/scripts/start_test_database.py
       - name: Run backend tests
         run: .venv/bin/python -m pytest -q
+      - name: Stop disposable SQL Server
+        if: always() && env.COMPOSE_PROJECT_NAME != ''
+        working-directory: .
+        run: docker compose down -v
       - name: Prepare backend deployment ZIP
         run: >
           .venv/bin/python ../.github/scripts/package_backend.py
@@ -59,7 +69,7 @@ jobs:
   # Deploy the validated artifacts only on main, after BOTH validation jobs pass.
   deploy_frontend:
     name: Deploy frontend
-    needs: [frontend, backend]
+    needs: [frontend, backend, database]
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -92,7 +102,7 @@ jobs:
 
   deploy_backend:
     name: Deploy backend
-    needs: [frontend, backend]
+    needs: [frontend, backend, database]
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -118,13 +128,60 @@ jobs:
           app-name: projekt-skryptowe-1-api-baarsik
           package: backend-artifact/backend.zip
 
-  # Future database work: skipped unless explicitly enabled, then fails closed.
+  # Always gate main deployments on migrations from the validated backend artifact.
   database:
-    name: Database migrations and seeding (not implemented)
-    if: vars.ENABLE_DATABASE_MIGRATIONS == 'true'
-    runs-on: ubuntu-24.04
+    name: Migrate Azure SQL
+    needs: [frontend, backend]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ${{ vars.AZURE_SQL_MIGRATION_RUNNER || 'ubuntu-24.04' }}
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      APP_ENV: azure
+      DB_HOST: grandduchy-server.database.windows.net
+      DB_NAME: rachunki-db
+      DB_AUTHENTICATION: ActiveDirectoryDefault
+      AZURE_TOKEN_CREDENTIALS: AzureCliCredential
     steps:
-      - name: Stop if unfinished database work is enabled
+      - name: Check migration identity and network runner configuration
+        env:
+          MIGRATION_CLIENT_ID: ${{ vars.AZURE_SQL_MIGRATION_CLIENT_ID }}
+          MIGRATION_RUNNER: ${{ vars.AZURE_SQL_MIGRATION_RUNNER }}
         run: |
-          echo '::error::Database migrations and seeding are not implemented. Leave ENABLE_DATABASE_MIGRATIONS unset until this job is replaced.'
-          exit 1
+          if [ -z "$MIGRATION_CLIENT_ID" ] || [ -z "$MIGRATION_RUNNER" ]; then
+            echo '::error::Configure AZURE_SQL_MIGRATION_CLIENT_ID and AZURE_SQL_MIGRATION_RUNNER with SQL network access. See README.md.'
+            exit 1
+          fi
+      - name: Download validated backend
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: backend-source
+          path: backend-artifact
+      - name: Unpack validated backend
+        run: |
+          migration_directory="$RUNNER_TEMP/rachunki-migration-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          echo "MIGRATION_DIRECTORY=$migration_directory" >> "$GITHUB_ENV"
+          unzip -q backend-artifact/backend.zip -d "$migration_directory"
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.14'
+      - name: Install validated dependency versions
+        working-directory: ${{ env.MIGRATION_DIRECTORY }}
+        run: |
+          python -m venv .venv
+          .venv/bin/python -m pip install -r requirements.txt
+      - name: Sign in with the separate SQL migration identity
+        uses: Azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
+        with:
+          client-id: ${{ vars.AZURE_SQL_MIGRATION_CLIENT_ID }}
+          tenant-id: 2b21cb1e-3044-41f9-85d9-f592b1493d6f
+          allow-no-subscriptions: true
+      - name: Apply pending schema migrations
+        working-directory: ${{ env.MIGRATION_DIRECTORY }}
+        run: .venv/bin/python -m alembic upgrade head
+      - name: Seed required reference data
+        working-directory: ${{ env.MIGRATION_DIRECTORY }}
+        run: .venv/bin/python -m db.seed --profile reference

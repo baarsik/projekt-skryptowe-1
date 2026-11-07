@@ -1,68 +1,123 @@
-# Backend starter
+# Backend and database
 
-The FastAPI application in `main.py` implements only `GET /`, returning
-`{"msg": "Hello World"}`. Pytest checks that response and the CI packaging helper.
-Household functionality, authentication, database access, migrations, and seeding
-are not implemented yet.
+The FastAPI starter exposes only `GET /`. Database tools use SQLAlchemy,
+`mssql-python` and Alembic; application endpoints and authentication are planned.
+See the [schema](../docs/schema.md) and [Azure setup](../infra/README.md).
 
-## Local setup
+## Local database with Docker
+
+Use current Docker with x86-64 Linux container support, Compose v2 and at least
+4 GiB of memory. **Docker Engine 20.10.8 fails the tools build and SQL startup**;
+update it before following these steps.
+
+From the repository root:
+
+```sh
+cp .env.example .env
+```
+
+Set two different, strong local passwords in `.env`: `LOCAL_SQL_ADMIN_PASSWORD`
+and `LOCAL_SQL_APP_PASSWORD`. Use at least eight characters with three of:
+uppercase letters, lowercase letters, digits and symbols. Single-quote values
+containing `$`. Keep `.env` private.
+Retain `COMPOSE_PROJECT_NAME=rachunki-local` so existing volumes keep their names.
+
+```sh
+docker compose build tools
+docker compose up -d db
+docker compose run --rm tools python -m db.bootstrap --local
+docker compose run --rm tools python -m alembic upgrade head
+docker compose run --rm tools python -m db.seed --profile demo
+```
+
+The tools container waits for SQL's health check. Bootstrap creates the local
+`rachunki_dev` database and an application login with CRUD permissions; local
+migrations use the administrator login. SQL is exposed only on `127.0.0.1`, at
+`LOCAL_SQL_PORT` (default 1433), and data persists in a Docker volume.
+
+After pulling changes, start SQL and run `alembic upgrade head` again. Rebuild
+`tools` when its requirements or Dockerfile change. Keep the original administrator
+password while retaining the volume; editing `.env` does not reset it.
+
+Stop with `docker compose down`. **`docker compose down -v` deletes local data**;
+repeat bootstrap, migrations and seeding afterward.
+
+## Run the API with Python
 
 Use Python 3.14. From `backend/`:
 
 ```sh
 python3.14 -m venv .venv
 .venv/bin/python -m pip install -r requirements.txt ruff
+.venv/bin/python -m uvicorn main:app --reload --host 127.0.0.1 --port 8000
+```
+
+On Windows, use `.venv\Scripts\python.exe`. For native database commands, replace
+`docker compose run --rm tools python` with `.venv/bin/python` and run from
+`backend/`. Linux also needs `libgssapi-krb5-2` and `libltdl7`; the tools image
+includes them.
+
+Local database commands load the root `.env`, preserving process environment
+values. `CI` or `APP_ENV=azure` disables dotenv loading. No migrations or seeds
+run when the API starts.
+
+## Change the schema
+
+Apply existing migrations first, then edit `db/schema.py`. From the repository root:
+
+```sh
+docker compose run --rm tools python -m alembic revision --autogenerate -m "describe change"
+docker compose run --rm tools python -m alembic upgrade head
+docker compose run --rm tools python -m alembic check
+```
+
+Review generated migrations. Include schema changes, migration files, tests and
+the diagram in the same PR; do not edit deployed revisions or import current
+schema definitions into historical migrations. Resolve parallel revisions to one
+head before merging.
+
+Follow the [phased compatibility rule](../AGENTS.md#database-compatibility-rule):
+add replacements and switch application usage before removing old structures in
+*a later deployment*. Downgrades can delete data and are never deployed automatically.
+
+To regenerate the initial [SQL script](../docs/schema.sql), from `backend/`:
+
+```sh
+.venv/bin/python -m alembic upgrade 20261107_01 --sql > ../docs/schema.sql
+```
+
+Use Alembic for normal migrations. The SQL script includes the version record
+and is intended for an empty database, not an already migrated one.
+
+## Seed data
+
+| Profile | Contents | Where it runs |
+| --- | --- | --- |
+| `reference` | Three expense categories | Local development and Azure deployment |
+| `demo` | Reference data, a household, three users, an expense and a repayment | Local development/test only |
+
+Select a profile with `python -m db.seed --profile reference` (or `demo`), using
+Docker or the virtual environment as above. Both require the latest migration,
+preserve existing rows and roll back the whole seed on conflicts. Demo logins
+are disabled. Run one seed or migration process at a time.
+
+## Checks
+
+From `backend/` with the Python environment installed:
+
+```sh
 .venv/bin/python -m ruff check .
 .venv/bin/python -m pytest -q
 ```
 
-For local development, run:
+SQL integration tests are skipped by default. To include them, start local SQL
+and run from the repository root:
 
 ```sh
-.venv/bin/python -m uvicorn main:app --reload --host 127.0.0.1 --port 8000
+DB_INTEGRATION_TESTS=1 docker compose run --rm tools python -m pytest -q
+docker compose run --rm tools python -m ruff check .
 ```
 
-The existing requirements include FastAPI, Uvicorn, pytest, and HTTPX2. CI
-installs them into an isolated environment, runs pytest, and freezes the resolved
-versions into the deployment ZIP. The source requirements themselves are not
-version-locked. Local environments, test files, and ignored files are not deployed.
-
-Ruff is installed alongside `requirements.txt` for local and PR checks. The
-deployment workflow installs `requirements.txt`. The
-[PR workflow](../.github/workflows/ci.yml), release validation, and Azure hosting
-all use Python 3.14.
-
-The [packaging helper](../.github/scripts/package_backend.py) can also be run
-from the repository root using the backend's tested virtual environment:
-
-```sh
-backend/.venv/bin/python .github/scripts/package_backend.py \
-  --repository . \
-  --revision HEAD \
-  --output /tmp/backend.zip
-```
-
-It packages the selected Git revision, so uncommitted backend edits are excluded.
-The helper's tests cover the selected revision, frozen requirements, exclusion of
-local/test files, calls from a subdirectory, and failure for an invalid revision.
-
-## Azure deployment
-
-The [application workflow](../.github/workflows/ci-cd.yml) deploys validated
-backend artifacts on `main` after both frontend and backend checks pass. OIDC
-authentication uses an identity with Website Contributor scoped only to the API
-App Service. No backend password or publish-profile secret is required.
-
-App Service runs Python 3.14 and installs the ZIP's requirements through its
-remote build. Its startup command is:
-
-```sh
-python -m uvicorn main:app --host 0.0.0.0 --port 8000
-```
-
-The host is enabled on the existing B1 plan. Always On remains disabled, so idle
-instances can stop and requests may incur a cold start. No database grants or
-connection settings are configured. SQL migrations/seeding remain a disabled
-workflow placeholder. There are no smoke tests or post-deployment endpoint checks.
-
-See the [project README](../README.md) for infrastructure and frontend setup.
+The native equivalent is `DB_INTEGRATION_TESTS=1 .venv/bin/python -m pytest -q`
+from `backend/`. Integration tests create and remove isolated `rachunki_test_*`
+databases. Both backend CI workflows run them against disposable SQL containers.

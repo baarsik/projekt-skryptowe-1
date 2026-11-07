@@ -1,54 +1,59 @@
+# Initial database schema
+
+Implemented by [Alembic revision 20261107_01](../backend/migrations/versions/20261107_01_initial_schema.py).
+The generated SQL Server creation script is [schema.sql](schema.sql).
+
 ```mermaid
 erDiagram
     users {
-        uuid id PK
-        varchar name
-        varchar username UK
-        varchar email UK
+        uniqueidentifier id PK
+        nvarchar name
+        nvarchar username UK
+        nvarchar email UK
         varchar password_hash
-        timestamp created_at
+        datetime2 created_at
     }
     groups {
-        uuid id PK
-        varchar name
-        timestamp created_at
+        uniqueidentifier id PK
+        nvarchar name
+        datetime2 created_at
     }
     group_members {
-        uuid group_id PK
-        uuid user_id FK
-        timestamp joined_at
+        uniqueidentifier group_id PK,FK
+        uniqueidentifier user_id PK,FK
+        datetime2 joined_at
     }
     categories {
         int id PK
-        varchar name
+        nvarchar name UK
     }
     expenses {
-        uuid id PK
-        uuid group_id FK
-        uuid payer_id FK
+        uniqueidentifier id PK
+        uniqueidentifier group_id FK
+        uniqueidentifier payer_id FK
         int category_id FK
-        varchar description
+        nvarchar description
         decimal total_amount
         varchar split_method
-        timestamp occurred_on
-        timestamp created_at
+        date occurred_on
+        datetime2 created_at
     }
     expense_splits {
-        uuid id PK
-        uuid expense_id FK
-        uuid debtor_id FK
+        uniqueidentifier id PK
+        uniqueidentifier expense_id FK
+        uniqueidentifier debtor_id FK
         decimal amount_owed
     }
     settlements {
-        uuid id PK
-        uuid group_id FK
-        uuid sender_id FK
-        uuid receiver_id FK
+        uniqueidentifier id PK
+        uniqueidentifier group_id FK
+        uniqueidentifier sender_id FK
+        uniqueidentifier receiver_id FK
         decimal amount
         int status
-        timestamp occurred_on
-        timestamp created_at
-        timestamp updated_at
+        date occurred_on
+        datetime2 created_at
+        datetime2 updated_at
     }
 
     groups ||--o{ group_members : has
@@ -62,3 +67,16 @@ erDiagram
     users ||--o{ settlements : sends
     users ||--o{ settlements : receives
 ```
+
+All columns are non-null. UUIDs come from Python; timestamps default to UTC.
+Applications must explicitly update `settlements.updated_at` when changing a row.
+
+- Money uses `decimal(19,2)`: totals/repayments must be positive; shares may be zero.
+- Membership is keyed by `(group_id, user_id)`; each expense/debtor split is unique.
+  A settlement's sender and receiver must differ.
+- Category IDs are fixed reference keys: `1 = Jedzenie`, `2 = Transport`, `3 = Inne`.
+- Foreign keys prevent deleting referenced rows. Membership eligibility and shares
+  adding up to the total are not enforced by the database.
+- `split_method` and settlement `status` have no database enum constraints yet.
+
+See [db/schema.py](../backend/db/schema.py) for exact column definitions.

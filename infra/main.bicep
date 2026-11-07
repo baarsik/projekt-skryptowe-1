@@ -59,3 +59,5 @@ output deploymentClientId string = hosting.outputs.deploymentClientId
 output deploymentTenantId string = hosting.outputs.deploymentTenantId
 output deploymentSubscriptionId string = hosting.outputs.deploymentSubscriptionId
 output databaseResourceId string = database.outputs.databaseResourceId
+output migrationClientId string = hosting.outputs.migrationClientId
+output migrationPrincipalId string = hosting.outputs.migrationPrincipalId

@@ -2,3 +2,7 @@ fastapi
 uvicorn
 pytest
 httpx2
+SQLAlchemy[mssql-python]>=2.1,<2.2
+alembic>=1.18,<2
+azure-identity>=1.25,<2
+python-dotenv>=1.2,<2
