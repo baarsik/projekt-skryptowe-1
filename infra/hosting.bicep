@@ -97,3 +97,25 @@ output backendHostname string = backend.properties.defaultHostName
 output deploymentClientId string = deploymentIdentity.properties.clientId
 output deploymentTenantId string = deploymentIdentity.properties.tenantId
 output deploymentSubscriptionId string = subscription().subscriptionId
+
+// SQL data-plane permissions are granted separately inside rachunki-db by its admin.
+resource migrationIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' = {
+  name: 'id-projekt-skryptowe-1-migrate'
+  location: location
+  tags: tags
+}
+
+resource migrationGithubMain 'Microsoft.ManagedIdentity/userAssignedIdentities/federatedIdentityCredentials@2024-11-30' = {
+  parent: migrationIdentity
+  name: 'github-main'
+  properties: {
+    issuer: 'https://token.actions.githubusercontent.com'
+    subject: '${githubOidcSubjectPrefix}:ref:refs/heads/main'
+    audiences: [
+      'api://AzureADTokenExchange'
+    ]
+  }
+}
+
+output migrationClientId string = migrationIdentity.properties.clientId
+output migrationPrincipalId string = migrationIdentity.properties.principalId

@@ -14,10 +14,13 @@ for the proposed functional scope.
   GitHub secret described below and this workflow on GitHub.
 - `backend/` contains a FastAPI starter with a `GET /` endpoint returning
   `{"msg": "Hello World"}`, with pytest checks for the endpoint and deployment
-  packaging. It has no database integration or household application functionality.
+  packaging. Explicit SQLAlchemy/Alembic database tools implement the initial
+  seven-table schema and reference/demo seeding. The HTTP API does not yet access
+  the database or implement household application functionality.
 - `infra/` defines the frontend host, enabled Python backend host, its narrowly
   scoped GitHub deployment identity, and a separate free-offer SQL database.
-  Database users, application tables, migrations, and seeding are not implemented.
+  A separate main-only migration identity is provisioned. Database grants and SQL
+  network access require administrator setup before Azure migrations can run.
 - PRs to `main` run backend Ruff and pytest on Python 3.14. Frontend PR checks
   remain a TODO because Vitest tests are not configured. The main deployment
   workflow separately validates both applications using Python 3.14 for the backend.
@@ -60,7 +63,9 @@ browser build.
 
 [ci.yml](.github/workflows/ci.yml) runs only for pull requests targeting `main`.
 It installs `backend/requirements.txt` and Ruff, runs `python -m ruff check .`, and
-runs `python -m pytest -q` from `backend/` using Python 3.14.
+runs `python -m pytest -q` from `backend/` using Python 3.14. An isolated SQL
+Server container exercises migrations, constraints, model drift and repeatable
+seeds. Its generated credentials are masked and never sent to Azure.
 
 Frontend setup, ESLint, and Vitest remain a commented TODO until frontend tests
 exist. No placeholder job reports frontend tests as passed. This workflow does
@@ -75,27 +80,29 @@ The [workflow](.github/workflows/ci-cd.yml) implements this initial portion of
 1. Pushes to `main` and manual runs validate the frontend and run backend pytest
    in parallel. The frontend uses the committed npm lockfile; backend requirements
    are installed into a Python 3.14 virtual environment matching Azure.
-2. Both validation jobs must pass before either deployment can start.
+2. Backend validation also runs migrations and seed/constraint tests against a
+   disposable SQL Server container with generated ephemeral credentials.
 3. `frontend-static` contains the exported frontend. `backend-source` contains a
    ZIP of the tested commit's Git-tracked backend code, excluding tests and local
    environments. Its requirements record the exact dependency versions resolved
    during that validation run. Artifacts are retained for seven days.
-4. Successful `main` runs deploy those artifacts independently to Static Web Apps
-   and App Service. A manual run can deploy only when its branch is `main`.
+4. Successful `main` runs first apply Alembic migrations and reference seeds from
+   the validated backend ZIP. Both application deployments require that database
+   job to succeed. A manual run can deploy only when its branch is `main`.
 5. Pull requests never deploy, receive the Azure deployment secret, or obtain
    Azure OIDC tokens. Main runs are serialized. There are no preview environments
    or smoke tests.
 
-The workflow is organized in that order: **validate → deploy → future database
-work**. Every step has a descriptive name. Backend ZIP creation lives in the
+The workflow is organized in that order: **validate → migrate → deploy**.
+Every step has a descriptive name. Backend ZIP creation lives in the
 [packaging helper](.github/scripts/package_backend.py), so the YAML shows the
 release sequence rather than embedded Python code. Its regression tests run as
 part of the backend pytest job.
 
-The backend deployment is enabled without an opt-in repository variable.
-`ENABLE_BACKEND_DEPLOYMENT` is no longer used. Only the database job remains a
-placeholder: leave `ENABLE_DATABASE_MIGRATIONS` unset. Setting it to `true` fails
-that job until real migrations and seeding replace it.
+The backend deployment and migration gate are mandatory on `main`.
+`ENABLE_BACKEND_DEPLOYMENT` and `ENABLE_DATABASE_MIGRATIONS` are no longer used.
+Missing SQL identity/runner configuration fails the database job and blocks both
+application deployments; see [Azure database setup](#azure-database-setup).
 
 Required-check branch protection has not been configured. More backend behavioral
 coverage and frontend Vitest tests must be added with application functionality;
@@ -117,6 +124,99 @@ The workflow contains public client, tenant, and subscription identifiers, not
 an Azure password or publish profile. No backend deployment secret is required.
 The app's system-assigned runtime identity is separate and has no database grants.
 
+## Local database development
+
+Each teammate gets an independent SQL Server database using the root
+[Compose file](compose.yaml), with a persistent local volume. Copy
+[.env.example](.env.example) to `.env` and manually fill in two different local
+SQL passwords. No Azure account is needed. Use current Docker with x86-64 Linux
+containers and Compose v2. The template sets `COMPOSE_PROJECT_NAME=rachunki-local`
+to keep container and volume names stable. For an existing `.env`, add this
+non-secret setting if absent. Project naming uses the environment variable so
+older Compose v2 clients can parse the file.
+
+Check `docker version` before building: Engine 20.10.8 is known to fail the
+current tools image and SQL Server startup. Update Docker Desktop/the engine
+first if using that version. Compose parsing alone is not an end-to-end check;
+see [the verified setup limitations](backend/README.md#first-time-local-setup-with-docker).
+
+```sh
+docker compose build tools
+docker compose up -d db
+docker compose run --rm tools python -m db.bootstrap --local
+docker compose run --rm tools python -m alembic upgrade head
+docker compose run --rm tools python -m db.seed --profile demo
+```
+
+The optional Python 3.14 tools container runs database commands without installing
+Python on the host. Its SQL health-check dependency waits for database readiness.
+The frontend and API keep their existing native development
+commands. After pulling changes, apply the committed migrations; generate new
+ones only when changing the schema. See [backend setup and team workflow](backend/README.md)
+for native Python commands, seed profiles, full integration tests, and resetting
+local data. See [the schema](docs/schema.md) and [generated creation SQL](docs/schema.sql).
+
+## Azure database setup
+
+The migration identity and its main-only GitHub federation were provisioned on
+2026-11-07 in `rg-projekt-skryptowe-1-dev`. Deployment
+`rachunki-migration-identity-20261107` applied only those two identity resources,
+using an incremental ARM template generated from the Bicep definitions. The
+existing hosting resources were outside that deployment. Database permissions,
+runner networking and GitHub variables remain separate setup steps.
+Before the next `main` deployment:
+
+1. Identity provisioning is complete: `id-projekt-skryptowe-1-migrate` has
+   main-only GitHub federation and no Azure management roles. Obtain its public
+   client ID with:
+
+   ```sh
+   az identity show \
+     --resource-group rg-projekt-skryptowe-1-dev \
+     --name id-projekt-skryptowe-1-migrate \
+     --query clientId --output tsv
+   ```
+
+   [hosting.bicep](infra/hosting.bicep) retains the resource definitions; future
+   full hosting deployments also reapply hosting settings and need a what-if
+   review. The API deployment identity stays separate.
+2. As the Microsoft Entra database administrator, connect specifically to
+   `rachunki-db` and run [the grants script](infra/sql/grant-database-access.sql).
+   It creates contained users for the migration and runtime identities, grants
+   schema DDL/DML to the migrator and CRUD to the API, and grants no server-wide
+   roles. It must not be run against another database. For customized identity
+   names, update the script before running it. Entra administrator/directory
+   configuration on the existing shared SQL server is a prerequisite.
+3. Provide a Linux x86-64 migration runner with routing and DNS to the SQL private
+   endpoint. A self-hosted runner on the connected network is one option; configure
+   a dedicated label such as `rachunki-sql`. It needs Azure CLI, unzip, support for
+   `actions/setup-python`, the SQL driver's native `libgssapi-krb5-2`/`libltdl7`
+   dependencies, and outbound access to GitHub/PyPI/Entra. Standard
+   GitHub-hosted networking alone cannot reach the existing private endpoint.
+   Keep untrusted PR jobs off that private runner. If using a hosted runner,
+   arrange private connectivity explicitly before selecting its label.
+4. Manually configure these GitHub repository **variables**, which are public
+   identifiers, not secrets:
+
+   | Variable | Value |
+   | --- | --- |
+   | `AZURE_SQL_MIGRATION_CLIENT_ID` | The new identity's `migrationClientId` |
+   | `AZURE_SQL_MIGRATION_RUNNER` | The label of the SQL-connected runner |
+
+The migration job uses OIDC and a tenant-level Azure CLI login; the SQL identity
+does not need Website Contributor or subscription-wide permissions. Driver
+authentication explicitly selects that CLI session through
+`AZURE_TOKEN_CREDENTIALS=AzureCliCredential`. The job installs the tested ZIP's exact
+resolved requirements, runs `alembic upgrade head`, then seeds only reference
+categories. Either failure blocks both application deployments. Missing variables
+fail with an explicit setup message. The old migration opt-in flag is unused.
+
+The API has no HTTP database access yet. When it gains that functionality, configure
+its SQL network route/DNS and non-secret settings (`APP_ENV=azure`, `DB_HOST`,
+`DB_NAME`, `DB_AUTHENTICATION=ActiveDirectoryMSI`) for its own managed identity.
+Neither migrations nor seeds run at application startup. Schema changes must
+follow the strict phased compatibility rule in [AGENTS.md](AGENTS.md).
+
 ### One-time GitHub secret setup
 
 The user must perform this step manually. In the Azure portal, open the
@@ -137,9 +237,12 @@ The [Bicep definitions](infra/main.bicep) describe these development resources:
 | Frontend | `projekt-skryptowe-1-web` | Static Web Apps Free, West Europe |
 | Backend | `projekt-skryptowe-1-api-baarsik` | Python 3.14, enabled, own system-assigned identity |
 | Backend deployment identity | `id-projekt-skryptowe-1-deploy` | Main-only GitHub OIDC; API-scoped Website Contributor |
+| Database migration identity | `id-projekt-skryptowe-1-migrate` | Provisioned 2026-11-07; main-only GitHub OIDC; database grants applied separately |
 | Database | `rachunki-db` | Separate free-offer database on `grandduchy-server` |
 
-These resources were provisioned on 2026-11-06. The reserved frontend address is
+The hosting/database resources were provisioned on 2026-11-06; the migration
+identity and GitHub federation were provisioned separately on 2026-11-07.
+The reserved frontend address is
 [ashy-meadow-0ba2cda03.3.azurestaticapps.net](https://ashy-meadow-0ba2cda03.3.azurestaticapps.net).
 Frontend files have not been uploaded: the GitHub workflow must first be
 published and its frontend deployment token manually configured. The backend
@@ -171,9 +274,10 @@ paid-overage fallback. Existing databases and the server's networking are not
 modified. Other services, such as future monitoring or additional networking,
 can still incur charges.
 
-The backend runtime identity has no database grants. Before adding database
+The identity deployment did not apply SQL grants. Before adding database
 integration, create a contained runtime user only in `rachunki-db`, grant the
-required application schema permissions, and configure a separate migration identity. Do not reuse
+required application schema permissions, and grant the provisioned migration
+identity its database permissions. Do not reuse
 GrandDuchy's database credentials or grant server-wide roles. Neither migration
 nor seed code should run automatically from application startup.
 
@@ -232,8 +336,10 @@ false, so the API can idle and incur a cold start; it does not poll SQL.
 
 Household accounts, expenses, repayments, corrections, balances, three browser
 views, and CSV import/export remain planned. CSV details still require agreement.
-Backend business functionality, persistence integration, and database design
-require their own tasks. See [backend setup issue #5](https://github.com/baarsik/projekt-skryptowe-1/issues/5)
+Backend business functionality and HTTP persistence integration require their own
+tasks. Initial migrations/seeding implement
+[issue #15](https://github.com/baarsik/projekt-skryptowe-1/issues/15).
+See [backend setup issue #5](https://github.com/baarsik/projekt-skryptowe-1/issues/5)
 and [backend commands](backend/README.md).
 
 ## Contributing

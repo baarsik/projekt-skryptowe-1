@@ -11,6 +11,10 @@ for project context and [AI.md](AI.md) for previously recorded AI-assisted work.
   files from `frontend/` to Azure Static Web Apps. Browser `fetch` integration,
   **Vitest**, three application views, and CSV import/export remain planned.
 - The backend uses **Python 3.14**, **FastAPI**, **Uvicorn**, and **pytest**.
+- Explicit database tools use **SQLAlchemy 2.1**, **Alembic**, and
+  **mssql-python** for local SQL Server and Azure SQL. Docker Compose provides
+  isolated local SQL and an optional Python tools container. The API has no
+  database-backed household endpoints yet.
 - The frontend has a dependency lockfile, ESLint, type checking, a static build,
   and a GitHub Actions workflow with parallel frontend/backend validation and
   main-only deployment of both artifacts.
@@ -34,6 +38,17 @@ commands, configuration names, or dependency versions.
   be manually added by the user to GitHub. That includes but is not limited to
   the database connection strings.
 
+## Database compatibility rule
+
+Schema changes must preserve compatibility with the currently deployed application.
+Add replacement structures and migrate data before switching application usage.
+Remove obsolete columns or tables only in a later deployment, after all deployed
+application versions have stopped using them and rollback compatibility has been
+addressed. Apply this rule strictly during implementation and code review.
+
+Run migrations as an explicit deployment step before application deployment.
+Never run migrations or seeds from application startup. Keep demo seed data local.
+
 ## Test policy
 
 - For behavior changes, add or update meaningful tests for the changed behavior
@@ -54,6 +69,13 @@ commands, configuration names, or dependency versions.
   with `.venv/bin/python -m pytest -q` from `backend/` after installing its
   requirements into that virtual environment.
 
+SQL integration tests are skipped unless `DB_INTEGRATION_TESTS=1`. With local SQL
+running and credentials configured, use
+`DB_INTEGRATION_TESTS=1 .venv/bin/python -m pytest -q` from `backend/`, or
+`DB_INTEGRATION_TESTS=1 docker compose run --rm tools python -m pytest -q` from
+the root. These tests create/remove only isolated `rachunki_test_*` databases.
+Both backend CI workflows run them against disposable SQL containers.
+
 ## Automatic work logging in AI.md
 
 For every task that changes repository files with AI assistance, **automatically
@@ -64,7 +86,7 @@ includes code, tests, configuration, documentation, and agent instruction change
 Each entry must contain:
 
 - The date and issue or task reference, when available.
-- The requested scope and a concise description of the work actually completed.
+- The requested scope and a concise description of the work actually completed (except validations).
 - Files changed.
 - Any material implementation decisions made without user explicitly specifying them.
 

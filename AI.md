@@ -31,3 +31,19 @@ Copy this template to the end of the log and replace the placeholders:
 
 - Scope: Backend checks for PRs to main; frontend checks left as TODO.
 - Changes: Switched `ci.yml` to Python 3.14, installed Ruff directly, and updated both READMEs; kept deployment CI on main/manual runs and updated setup instructions.
+
+### 2026-11-07 — Issue #15: Alembic migrations, seeding and local SQL
+
+- Scope: Set up initial migrations and repeatable seed data, support independent
+  local Docker development, and make Azure deployment depend on migrations.
+- Changes: Added connection/settings, bootstrap, schema and transactional seeds
+  in `backend/db/`; Alembic configuration/revision in `backend/alembic.ini` and
+  `backend/migrations/`; generated `docs/schema.sql` and aligned `docs/schema.md`.
+  Extended the existing user-created `compose.yaml`/`.env.example`, added
+  `backend/Dockerfile.tools`/`.dockerignore`, and declared database dependencies.
+  Added configuration/SQL integration tests and extended packaging tests. Updated
+  both workflows and added `.github/scripts/start_test_database.py`. Added a
+  separate migration identity/output in hosting/main Bicep and a guarded grants
+  script in `infra/sql/`. Updated both READMEs, amended AGENTS.md with strict
+  phased compatibility and database/test guidance, and recorded the plan in
+  `docs/superpowers/plans/2026-11-07-database-migrations.md`.

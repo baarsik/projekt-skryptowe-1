@@ -1,0 +1,48 @@
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      MSSQL_SA_PASSWORD: ${LOCAL_SQL_ADMIN_PASSWORD:?Set a local password in .env}
+    ports:
+      - "127.0.0.1:${LOCAL_SQL_PORT:-1433}:1433"
+    volumes:
+      - sql-data:/var/opt/mssql
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          SQLCMDPASSWORD="$$MSSQL_SA_PASSWORD"
+          /opt/mssql-tools18/bin/sqlcmd
+          -S localhost -U sa -C -b
+          -Q "SELECT 1" -o /dev/null
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  tools:
+    profiles: [tools]
+    build:
+      context: backend
+      dockerfile: Dockerfile.tools
+    working_dir: /workspace/backend
+    volumes:
+      - .:/workspace
+    environment:
+      APP_ENV: local
+      DB_HOST: db
+      DB_PORT: "1433"
+      DB_NAME: ${DB_NAME:-rachunki_dev}
+      DB_USER: ${DB_USER:-rachunki_app}
+      LOCAL_SQL_ADMIN_PASSWORD: ${LOCAL_SQL_ADMIN_PASSWORD:?Set a local password in .env}
+      LOCAL_SQL_APP_PASSWORD: ${LOCAL_SQL_APP_PASSWORD:?Set a local application password in .env}
+      DB_INTEGRATION_TESTS: ${DB_INTEGRATION_TESTS:-0}
+    depends_on:
+      db:
+        condition: service_healthy
+    command: [python, -m, alembic, current]
+
+volumes:
+  sql-data:
