@@ -33,6 +33,8 @@ jobs:
         run: npm run lint
       - name: Check frontend TypeScript
         run: npm run typecheck
+      - name: Run frontend tests
+        run: npm run test:run
       - name: Build static frontend
         run: npm run build
       - name: Verify static deployment files
