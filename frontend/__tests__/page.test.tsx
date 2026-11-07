@@ -1,11 +1,9 @@
 import { expect, test } from "vitest";
 import { render, screen } from "@testing-library/react";
-import Home from "../app/page";
+import RootPage from "../app/(default)/page";
 
-test("renders the starter heading and documentation link", () => {
-  render(<Home />);
-  expect(
-    screen.getByRole("heading", { level: 1, name: /to get started/i })
-  ).toBeDefined();
-  expect(screen.getByRole("link", { name: /documentation/i })).toBeDefined();
+test("root page links to the default locale", () => {
+  render(<RootPage />);
+  const link = screen.getByRole("link", { name: /przejdź do aplikacji/i });
+  expect(link.getAttribute("href")).toBe("/pl");
 });
