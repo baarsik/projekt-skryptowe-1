@@ -1,8 +1,14 @@
 
+import { use } from "react";
 import { useTranslations } from "next-intl";
+import { setRequestLocale } from "next-intl/server";
 import { Link } from "../../../i18n/navigation";
 
-export default function ForgotPassword() {
+export default function ForgotPassword({
+  params,
+}: PageProps<"/[locale]/forgot-password">) {
+  const { locale } = use(params);
+  setRequestLocale(locale);
   const t = useTranslations("ForgotPassword");
 
   return (

@@ -4,9 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node -e \"require('node:fs').rmSync('out', { recursive: true, force: true })\"",
     "build": "next build",
     "lint": "eslint",
-    "typecheck": "next typegen && tsc --noEmit"
+    "typecheck": "next typegen && tsc --noEmit",
+    "check:export": "node ../.github/scripts/check_frontend_export.mjs"
   },
   "dependencies": {
     "next": "16.4.3",

@@ -1,7 +1,11 @@
+import { use } from "react";
 import { useTranslations } from "next-intl";
+import { setRequestLocale } from "next-intl/server";
 import { Link } from "../../../i18n/navigation";
 
-export default function Login() {
+export default function Login({ params }: PageProps<"/[locale]/login">) {
+  const { locale } = use(params);
+  setRequestLocale(locale);
   const t = useTranslations("Login");
 
   return (
