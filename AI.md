@@ -48,3 +48,8 @@ Copy this template to the end of the log and replace the placeholders:
   the existing Polish default locale; used Node's standard library for artifact
   checks without adding dependencies. Documented the existing ruleset's missing
   required status checks; GitHub repository settings were not changed.
+
+### 2026-11-07 — Issue #23: Vitest frontend tests
+
+- Scope: Add frontend unit testing to local checks and shared CI, documented in the repository. The test was written by the user; AI assistance was limited to review, verification, and guidance.
+- Changes: Added Vitest, React Testing Library, jsdom, and `test`/`test:run` scripts to `frontend/package.json`. Added a root page test in `frontend/__tests__/page.test.tsx` checking the link to the default locale. Added a `Run frontend tests` step (`npm run test:run`) to `.github/workflows/frontend-validation.yml` between type checking and build. Updated `README.md` and `AGENTS.md`. Chose `test:run` for CI so the job cannot hang in watch mode. The deprecated `vite-tsconfig-paths` warning was left for a separate change.

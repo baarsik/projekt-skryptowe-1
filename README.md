@@ -22,8 +22,7 @@ for the proposed functional scope.
   Database users, application tables, migrations, and seeding are not implemented.
 - PRs to `main` run backend Ruff/pytest on Python 3.14 and frontend validation on
   Node.js 24 in parallel. PR and deployment workflows share frontend lint,
-  TypeScript, build, and static artifact checks. Vitest application tests and
-  post-deployment application checks remain planned.
+  TypeScript, Vitest, build, and static artifact checks. Frontend Vitest coverage is currently a single test of the root page; post-deployment application checks remain planned.
 
 The current Azure frontend host replaces the GitHub Pages suggestion in
 [issue #1](https://github.com/baarsik/projekt-skryptowe-1/issues/1). The planned
@@ -44,9 +43,12 @@ The development server uses `http://localhost:3000`. Before submitting changes:
 ```sh
 npm run lint
 npm run typecheck
+npm run test:run
 npm run build
 npm run check:export
 ```
+
+`npm run test:run` runs the Vitest suite once (jsdom with React Testing Library). Use `npm run test` for watch mode during development; CI always uses `test:run`. The current test renders the root page and checks that it links to the default locale. Add a test with every behavior change.
 
 The build clears old `frontend/out/` files before writing the static deployment
 artifact, so an earlier export cannot hide a later server build. Static hosting
@@ -65,7 +67,7 @@ translated headings, language attributes, localized links, referenced JS/CSS,
 the root redirect, and `404.html`. It fails if a server build succeeds without
 producing the static files. Run it after every build; extend its route expectations
 when adding or changing pages. It uses Node's standard library with no additional
-dependencies and does not replace future Vitest application tests.
+dependencies and does not replace Vitest tests of application behavior.
 
 The frontend currently has no API address setting and does not contact the
 backend or database. Define and document build-time API configuration
@@ -79,12 +81,11 @@ Its backend job installs `backend/requirements.txt` and Ruff, runs
 `python -m ruff check .`, and runs `python -m pytest -q` from `backend/` using
 Python 3.14. In parallel, it calls the shared
 [frontend validation workflow](.github/workflows/frontend-validation.yml), which
-uses Node.js 24 and runs `npm ci`, lint, type checking, the production build, and
+uses Node.js 24 and runs `npm ci`, lint, type checking, `npm run test:run`, the production build, and
 `npm run check:export` before saving the validated static artifact. The same
 workflow validates the frontend before deployment on `main`.
 
-This workflow does not deploy or request Azure credentials. Frontend Vitest
-application tests remain planned; static artifact validation runs now.
+This workflow does not deploy or request Azure credentials. Frontend Vitest tests and static artifact validation both run now.
 
 ## Application CI/CD
 
@@ -122,7 +123,7 @@ does not require passing status checks (checked on 2026-11-07). To prevent mergi
 failed checks, also require the PR's `Frontend validation / Static frontend checks`
 and `Backend lint and tests` checks in that ruleset. This change does not update
 GitHub settings; workflow files alone cannot enforce repository merge rules.
-More backend behavioral coverage and frontend Vitest tests must be added with
+More backend behavioral coverage and frontend tests of application behavior must be added with
 application functionality; issue #2 is not complete merely because this workflow exists.
 
 ### Backend deployment authentication

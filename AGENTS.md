@@ -7,12 +7,9 @@ for project context and [AI.md](AI.md) for previously recorded AI-assisted work.
 
 - The project is **Dzielenie rachunków**, a shared household expense and
   reimbursement application.
-- The frontend starter uses **Next.js, React, and TypeScript**, exporting static
-  files from `frontend/` to Azure Static Web Apps. Browser `fetch` integration,
-  **Vitest**, three application views, and CSV import/export remain planned.
+- The frontend starter uses **Next.js, React, and TypeScript**, exporting static files from `frontend/` to Azure Static Web Apps, with **Vitest** and React Testing Library for tests. Browser `fetch` integration, three application views, and CSV import/export remain planned.
 - The backend uses **Python 3.14**, **FastAPI**, **Uvicorn**, and **pytest**.
-- The frontend has a dependency lockfile, ESLint, type checking, a static build,
-  and a GitHub Actions workflow with parallel frontend/backend validation and
+- The frontend has a dependency lockfile, ESLint, type checking, Vitest tests, a static build, and a GitHub Actions workflow with parallel frontend/backend validation and
   main-only deployment of both artifacts.
 
 The README links to the issues defining this scope. Inspect the actual files and
@@ -39,7 +36,7 @@ commands, configuration names, or dependency versions.
 - For behavior changes, add or update meaningful tests for the changed behavior
   and relevant failure cases. Bug fixes should include a regression test when the
   test infrastructure supports it.
-- Frontend tests use Vitest once configured.
+- Frontend tests use Vitest with React Testing Library (jsdom), located in `frontend/__tests__/`.
 - Add behavioral tests as backend functionality is implemented.
 - Use the test commands defined by the repository's actual configuration. Run
   focused tests for the changed component and its relevant suite when available;
@@ -48,10 +45,7 @@ commands, configuration names, or dependency versions.
   links, and whitespace. Application tests are unnecessary unless executable
   behavior or documented runnable examples are affected.
 - If tests or tooling are absent or cannot run, state that explicitly in the work
-  log and handoff. Never report an unexecuted check as passing. There are currently
-  no configured frontend application tests. Frontend checks are `npm run lint`,
-  `npm run typecheck`, `npm run build`, and then `npm run check:export` from
-  `frontend/`. The last command validates the deployable static artifact; update
+  log and handoff. Never report an unexecuted check as passing. Frontend checks are `npm run lint`, `npm run typecheck`, `npm run test:run`, `npm run build`, and then `npm run check:export` from `frontend/`. Use `test:run` rather than the watch-mode `test` script in automation. Current frontend test coverage is minimal (the root page); extend it with new behavior. The last command validates the deployable static artifact; update
   its route expectations when pages change. PR and deployment frontend checks
   share `.github/workflows/frontend-validation.yml`. Run backend tests
   with `.venv/bin/python -m pytest -q` from `backend/` after installing its
