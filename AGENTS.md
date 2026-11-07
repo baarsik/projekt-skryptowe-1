@@ -7,13 +7,13 @@ for project context and [AI.md](AI.md) for previously recorded AI-assisted work.
 
 - The project is **Dzielenie rachunków**, a shared household expense and
   reimbursement application.
-- The planned frontend uses **JavaScript and React**, browser `fetch` for API
-  requests, and **Vitest** for tests. It will have three views and CSV import/export.
-- The planned backend uses **Python**. Its framework, persistence layer, API
-  contract, runtime version, and test runner are not yet defined.
-- Application code, dependency manifests, tests, and CI/CD workflows do not exist
-  yet. Do not describe planned features or infrastructure as already implemented.
-  ESLint and integration tests are still open suggestions.
+- The frontend starter uses **Next.js, React, and TypeScript**, exporting static
+  files from `frontend/` to Azure Static Web Apps. Browser `fetch` integration,
+  **Vitest**, three application views, and CSV import/export remain planned.
+- The backend uses **Python 3.14**, **FastAPI**, **Uvicorn**, and **pytest**.
+- The frontend has a dependency lockfile, ESLint, type checking, a static build,
+  and a GitHub Actions workflow with parallel frontend/backend validation and
+  main-only deployment of both artifacts.
 
 The README links to the issues defining this scope. Inspect the actual files and
 relevant issue before making implementation decisions; do not invent existing
@@ -49,7 +49,10 @@ commands, configuration names, or dependency versions.
   behavior or documented runnable examples are affected.
 - If tests or tooling are absent or cannot run, state that explicitly in the work
   log and handoff. Never report an unexecuted check as passing. There are currently
-  no configured tests or application test commands.
+  no configured frontend application tests. Frontend checks are `npm run lint`,
+  `npm run typecheck`, and `npm run build` from `frontend/`. Run backend tests
+  with `.venv/bin/python -m pytest -q` from `backend/` after installing its
+  requirements into that virtual environment.
 
 ## Automatic work logging in AI.md
 
