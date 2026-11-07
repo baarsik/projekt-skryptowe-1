@@ -1,8 +1,12 @@
 
+import { use } from "react";
 import { useTranslations } from "next-intl";
+import { setRequestLocale } from "next-intl/server";
 import { Link } from "../../../i18n/navigation";
 
-export default function Signup() {
+export default function Signup({ params }: PageProps<"/[locale]/signup">) {
+  const { locale } = use(params);
+  setRequestLocale(locale);
   const t = useTranslations("Register");
 
   return (

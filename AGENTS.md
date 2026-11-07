@@ -50,7 +50,10 @@ commands, configuration names, or dependency versions.
 - If tests or tooling are absent or cannot run, state that explicitly in the work
   log and handoff. Never report an unexecuted check as passing. There are currently
   no configured frontend application tests. Frontend checks are `npm run lint`,
-  `npm run typecheck`, and `npm run build` from `frontend/`. Run backend tests
+  `npm run typecheck`, `npm run build`, and then `npm run check:export` from
+  `frontend/`. The last command validates the deployable static artifact; update
+  its route expectations when pages change. PR and deployment frontend checks
+  share `.github/workflows/frontend-validation.yml`. Run backend tests
   with `.venv/bin/python -m pytest -q` from `backend/` after installing its
   requirements into that virtual environment.
 
