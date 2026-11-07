@@ -1,0 +1,48 @@
+{
+  "Common": {
+    "email": "Adres e-mail",
+    "password": "Hasło",
+    "confirmPassword": "Potwierdź hasło",
+    "loading": "Ładowanie...",
+    "back": "Wróć",
+    "submit": "Zatwierdź"
+  },
+  "Login": {
+    "title": "Witaj ponownie",
+    "subtitle": "Zaloguj się na swoje konto",
+    "emailPlaceholder": "Wprowadź adres e-mail",
+    "passwordPlaceholder": "Wprowadź hasło",
+    "submit": "Zaloguj się",
+    "forgotPassword": "Nie pamiętasz hasła?",
+    "noAccount": "Nie masz jeszcze konta?",
+    "register": "Zarejestruj się"
+  },
+  "Register": {
+    "title": "Utwórz konto",
+    "subtitle": "Rozpocznij od utworzenia konta",
+    "name": "Imię i nazwisko",
+    "emailPlaceholder": "Wprowadź adres e-mail",
+    "passwordPlaceholder": "Utwórz hasło",
+    "confirmPasswordPlaceholder": "Potwierdź hasło",
+    "submit": "Utwórz konto",
+    "hasAccount": "Masz już konto?",
+    "login": "Zaloguj się"
+  },
+  "ForgotPassword": {
+    "title": "Nie pamiętasz hasła?",
+    "subtitle": "Podaj adres e-mail, a wyślemy Ci link do resetowania hasła",
+    "emailPlaceholder": "Wprowadź adres e-mail",
+    "submit": "Wyślij link",
+    "success": "Instrukcje resetowania hasła zostały wysłane na Twój adres e-mail",
+    "backToLogin": "Wróć do logowania"
+  },
+  "Home": {
+    "title": "Witaj",
+    "description": "Witamy w Twoim panelu"
+  },
+  "Language": {
+    "english": "English",
+    "polish": "Polski",
+    "label": "Język"
+  }
+}

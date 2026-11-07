@@ -1,0 +1,48 @@
+{
+  "Common": {
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm password",
+    "loading": "Loading...",
+    "back": "Back",
+    "submit": "Submit"
+  },
+  "Login": {
+    "title": "Welcome back",
+    "subtitle": "Sign in to your account",
+    "emailPlaceholder": "Enter your email",
+    "passwordPlaceholder": "Enter your password",
+    "submit": "Login",
+    "forgotPassword": "Forgot password?",
+    "noAccount": "Don't have an account?",
+    "register": "Sign up"
+  },
+  "Register": {
+    "title": "Create an account",
+    "subtitle": "Get started by creating your account",
+    "name": "Full name",
+    "emailPlaceholder": "Enter your email",
+    "passwordPlaceholder": "Create a password",
+    "confirmPasswordPlaceholder": "Confirm your password",
+    "submit": "Create account",
+    "hasAccount": "Already have an account?",
+    "login": "Login"
+  },
+  "ForgotPassword": {
+    "title": "Forgot your password?",
+    "subtitle": "Enter your email and we'll send you a reset link",
+    "emailPlaceholder": "Enter your email",
+    "submit": "Send reset link",
+    "success": "Password reset instructions have been sent to your email",
+    "backToLogin": "Back to login"
+  },
+  "Home": {
+    "title": "Welcome",
+    "description": "Welcome to your dashboard"
+  },
+  "Language": {
+    "english": "English",
+    "polish": "Polski",
+    "label": "Language"
+  }
+}
