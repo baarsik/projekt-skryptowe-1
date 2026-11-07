@@ -1,9 +1,38 @@
-# Backend starter
+# Backend
 
-The FastAPI application in `main.py` implements only `GET /`, returning
-`{"msg": "Hello World"}`. Pytest checks that response and the CI packaging helper.
-Household functionality, authentication, database access, migrations, and seeding
-are not implemented yet.
+The FastAPI application is structured as a modular package in `app/`, with
+`main.py` providing the top-level application entrypoint. It implements the user
+authentication subsystem, SQLAlchemy database models, and route protection
+middleware. All non-auth endpoints (including pre-existing `GET /` and future
+application routes) require a valid authenticated session.
+
+## Implemented authentication & API behavior
+
+- **Sign up** (`POST /auth/signup`, alias `POST /auth/register`): registers a new user, hashes password with bcrypt, generates a JWT, and sets an `HttpOnly` cookie.
+- **Sign in** (`POST /auth/signin`, alias `POST /auth/login`): authenticates with username or email, sets an `HttpOnly` session cookie.
+- **Password reset**:
+  - Request: `POST /auth/reset-password/request` (alias `POST /auth/forgot-password`). Generates a secure reset token. Password reset plumbing uses a stub email service (`StubEmailService`) that logs and records outgoing messages, returning the token in development/test responses.
+  - Confirm: `POST /auth/reset-password` (alias `POST /auth/reset-password/confirm`). Validates the single-use reset token and updates the password hash.
+- **Change password** (`POST /auth/change-password`): requires an authenticated JWT cookie, verifies the current password, updates the password hash, revokes the current token, and issues a fresh session token cookie.
+- **Log out** (`POST /auth/logout`): revokes the active token in the database, clears the cookie, and silently returns success if the token is invalid or absent.
+- **Global route protection (`AuthMiddleware`)**:
+  - All pre-existing (`GET /`) and future routes require a valid, unrevoked JWT token in the cookie (or Bearer header).
+  - Guest-only routes (`signup`, `signin`, `reset-password`) reject requests from already-authenticated users with `400 Bad Request`.
+  - Logged-out or revoked tokens are permanently denied access until re-authentication.
+
+## Database schema
+
+SQLAlchemy models reflect the ER diagram:
+- `users`: UUID PK, name, unique username, unique email, password hash, created_at.
+- `groups`: UUID PK, name, created_at.
+- `group_members`: composite PK (group_id, user_id), joined_at.
+- `categories`: int PK, name.
+- `expenses`: UUID PK, group_id, payer_id, category_id, description, total_amount, split_method, occurred_on, created_at.
+- `expense_splits`: UUID PK, expense_id, debtor_id, amount_owed.
+- `settlements`: UUID PK, group_id, sender_id, receiver_id, amount, status, occurred_on, created_at, updated_at.
+- `revoked_tokens` & `password_reset_tokens`: authentication security tables.
+
+SQLite is configured by default for local development and tests (`DATABASE_URL=sqlite:///./app.db`). Production databases can be set via `DATABASE_URL`.
 
 ## Local setup
 
@@ -22,8 +51,8 @@ For local development, run:
 .venv/bin/python -m uvicorn main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-The existing requirements include FastAPI, Uvicorn, pytest, and HTTPX2. CI
-installs them into an isolated environment, runs pytest, and freezes the resolved
+The existing requirements include FastAPI, Uvicorn, pytest, HTTPX2,
+SQLAlchemy, PyJWT, and bcrypt. CI installs them into an isolated environment, runs pytest, and freezes the resolved
 versions into the deployment ZIP. The source requirements themselves are not
 version-locked. Local environments, test files, and ignored files are not deployed.
 

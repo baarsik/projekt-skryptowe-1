@@ -48,3 +48,9 @@ Copy this template to the end of the log and replace the placeholders:
   the existing Polish default locale; used Node's standard library for artifact
   checks without adding dependencies. Documented the existing ruleset's missing
   required status checks; GitHub repository settings were not changed.
+  
+### 2026-11-07 — Backend user authentication and database models
+
+- Scope: Backend authentication flow, ER diagram database models, cookie-based JWT, and global route protection.
+- Changes: Implemented modular backend in `backend/app/` with auth endpoints (sign-up, sign-in, logout with token revocation, change/reset password), `AuthMiddleware` route protection, and SQLAlchemy models from the ER diagram. Used cookie-stored JWTs, bcrypt hashing, and a stub email service for password resets. Added dependencies (`sqlalchemy`, `pyjwt`, `bcrypt`), automated tests, and updated documentation.
+
