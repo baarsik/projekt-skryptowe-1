@@ -31,3 +31,20 @@ Copy this template to the end of the log and replace the placeholders:
 
 - Scope: Backend checks for PRs to main; frontend checks left as TODO.
 - Changes: Switched `ci.yml` to Python 3.14, installed Ruff directly, and updated both READMEs; kept deployment CI on main/manual runs and updated setup instructions.
+
+### 2026-11-07 — Issues #2/#3: Static frontend export and PR validation
+
+- Scope: Fix Application CI/CD runs #2/#3 in a separate worktree and catch the
+  same regressions in pull request CI, preserving the original checkout.
+- Changes: Restored export settings in `frontend/next.config.ts`, initialized
+  locale in all four `frontend/app/[locale]/` pages, restricted generated locales
+  in its layout, added root `frontend/app/(default)/layout.tsx` and `page.tsx`, disabled
+  request-based locale detection in `frontend/i18n/routing.ts`, and removed
+  `frontend/proxy.ts`. Added `.github/scripts/check_frontend_export.mjs` to check
+  localized HTML, links, JS/CSS, the root redirect, and 404; added its command and
+  stale-output cleanup to `frontend/package.json`. Both `.github/workflows/ci.yml`
+  and `ci-cd.yml` now call the shared `frontend-validation.yml` workflow. Updated
+  `README.md`, `frontend/README.md`, and `AGENTS.md`. Kept static hosting and
+  the existing Polish default locale; used Node's standard library for artifact
+  checks without adding dependencies. Documented the existing ruleset's missing
+  required status checks; GitHub repository settings were not changed.
